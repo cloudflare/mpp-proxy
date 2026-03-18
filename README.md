@@ -49,12 +49,6 @@ Tell your agent to run:
 tempo request -X GET https://YOUR-WORKER.workers.dev/__mpp/protected
 ```
 
-Or use `mppx` directly:
-
-```bash
-npx mppx https://YOUR-WORKER.workers.dev/__mpp/protected
-```
-
 The client handles the `402` automatically — it pays and returns the protected content with a `Payment-Receipt` header.
 
 ## Built-In Endpoints
