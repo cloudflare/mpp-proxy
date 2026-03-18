@@ -1,0 +1,12 @@
+dist/
+.wrangler/
+node_modules/
+.env
+.env.production
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+logs/
+*.log
+npm-debug.log*
+.DS_Store

@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MPP Payment-Gated Proxy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --brand: #f38020;
+        --brand-dark: #d96c10;
+        --brand-soft: #fef0e4;
+        --brand-wash: #fff9f5;
+        --bg: #ffffff;
+        --surface: #ffffff;
+        --ink: #333333;
+        --muted: #737373;
+        --line: rgba(51, 51, 51, 0.12);
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.6;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 40px 20px 56px;
+      }
+
+      .frame {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      /* Hero */
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+        gap: 32px;
+        padding: 48px 40px;
+      }
+
+      .badge,
+      .code,
+      .mini-label {
+        font-family: "IBM Plex Mono", monospace;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 16px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .badge::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--brand);
+        box-shadow: 0 0 0 5px rgba(243, 128, 32, 0.15);
+      }
+
+      h1 {
+        margin: 24px 0 18px;
+        font-size: clamp(2.6rem, 6.5vw, 5rem);
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: -0.04em;
+        color: var(--ink);
+      }
+
+      h1 span {
+        color: var(--brand);
+      }
+
+      .lede {
+        max-width: 46rem;
+        margin: 0;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      /* Buttons */
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 24px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        border: 1px solid transparent;
+        transition:
+          transform 160ms ease,
+          background-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .btn-primary {
+        background: var(--brand);
+        color: #ffffff;
+      }
+
+      .btn-primary:hover {
+        background: var(--brand-dark);
+        box-shadow: 0 4px 12px rgba(243, 128, 32, 0.3);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--brand);
+        border-color: var(--brand);
+      }
+
+      .btn-secondary:hover {
+        background: var(--brand-soft);
+      }
+
+      .btn-secondary::after {
+        content: " \2192";
+        margin-left: 6px;
+      }
+
+      /* Hero card */
+      .hero-card {
+        display: grid;
+        gap: 14px;
+        align-content: center;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--brand-wash);
+      }
+
+      .hero-card img {
+        width: 44px;
+        height: 44px;
+      }
+
+      .mini-label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .hero-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .code {
+        padding: 14px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: #2b2b2b;
+        color: #e8e8e8;
+        font-size: 13px;
+        overflow: auto;
+      }
+
+      /* 3-column info grid */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+        border-top: 1px solid var(--line);
+        background: var(--brand-wash);
+      }
+
+      .panel {
+        padding: 28px 24px;
+        border-right: 1px solid var(--line);
+      }
+
+      .panel:last-child {
+        border-right: 0;
+      }
+
+      .panel h2,
+      .routes h2 {
+        margin: 0 0 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      .panel p,
+      .endpoint p,
+      footer p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      /* Request flow steps */
+      .steps {
+        display: grid;
+        gap: 14px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 36px 1fr;
+        gap: 14px;
+        align-items: start;
+      }
+
+      .step strong {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+
+      .step-index {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--brand-soft);
+        color: var(--brand-dark);
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      /* Routes / endpoints section */
+      .routes {
+        padding: 28px 24px;
+        border-top: 1px solid var(--line);
+      }
+
+      .endpoint-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .endpoint {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg);
+      }
+
+      .endpoint .status {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-family: "IBM Plex Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-weight: 500;
+      }
+
+      .public {
+        background: #edf9f0;
+        color: #1a7f37;
+      }
+
+      .protected {
+        background: var(--brand-soft);
+        color: var(--brand-dark);
+      }
+
+      /* Footer */
+      footer {
+        padding: 24px;
+        border-top: 1px solid var(--line);
+        background: var(--brand);
+        border-radius: 0 0 16px 16px;
+      }
+
+      footer p {
+        color: rgba(255, 255, 255, 0.9) !important;
+      }
+
+      footer a {
+        color: #ffffff;
+        font-weight: 600;
+        text-decoration: underline;
+        text-decoration-color: rgba(255, 255, 255, 0.4);
+        text-underline-offset: 3px;
+      }
+
+      footer a:hover {
+        text-decoration-color: #ffffff;
+      }
+
+      /* Responsive */
+      @media (max-width: 920px) {
+        .hero {
+          grid-template-columns: 1fr;
+          padding: 32px 20px;
+        }
+
+        .grid,
+        .endpoint-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .panel {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .panel:last-child {
+          border-bottom: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="frame">
+        <div class="hero">
+          <div>
+            <div class="badge">Machine Payments Protocol Demo</div>
+            <h1>
+              Put an <span>MPP paywall</span><br />in front of any origin.
+            </h1>
+            <p class="lede">
+              This Cloudflare Worker turns protected routes into paid routes
+              using the MPP `Payment` authentication flow, then upgrades
+              successful buyers into short-lived cookie sessions for repeat
+              access.
+            </p>
+            <div class="actions">
+              <a class="btn btn-primary" href="/__mpp/protected"
+                >Try paid route</a
+              >
+              <a class="btn btn-secondary" href="https://mpp.dev/overview"
+                >Read the docs</a
+              >
+            </div>
+          </div>
+
+          <aside class="hero-card">
+            <img src="/mpp-icon.svg" alt="MPP icon" />
+            <div class="mini-label">Built-in flow</div>
+            <div class="code">
+              GET /premium &rarr; 402 &rarr; Authorization: Payment &rarr;
+              Payment-Receipt
+            </div>
+            <p>
+              The proxy uses `mppx` with the Tempo method by default, forwards
+              paid traffic to your origin, and issues an `auth_token` cookie
+              valid for one hour.
+            </p>
+          </aside>
+        </div>
+
+        <div class="grid">
+          <section class="panel">
+            <h2>What changes</h2>
+            <p>
+              The proxy speaks native MPP: `WWW-Authenticate: Payment`,
+              `Authorization: Payment`, and `Payment-Receipt` are first-class
+              protocol pieces.
+            </p>
+          </section>
+
+          <section class="panel">
+            <h2>Why the cookie still exists</h2>
+            <p>
+              MPP handles the payment exchange; the JWT cookie makes repeat
+              browser and agent requests cheap during the 1-hour access window.
+            </p>
+          </section>
+
+          <section class="panel">
+            <h2>Default method</h2>
+            <p>
+              This demo is wired to the Tempo method with a configurable token
+              address and recipient wallet in `wrangler.jsonc`.
+            </p>
+          </section>
+        </div>
+
+        <section class="routes">
+          <h2>Request flow</h2>
+          <div class="steps">
+            <div class="step">
+              <div class="step-index">01</div>
+              <div>
+                <strong>Client hits a protected route</strong>
+                <p>
+                  The Worker checks your route patterns before touching the
+                  origin.
+                </p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-index">02</div>
+              <div>
+                <strong>Worker returns an MPP challenge</strong>
+                <p>
+                  A `402 Payment Required` response includes `WWW-Authenticate:
+                  Payment`.
+                </p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-index">03</div>
+              <div>
+                <strong>Client retries with proof of payment</strong>
+                <p>The next request carries `Authorization: Payment`.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-index">04</div>
+              <div>
+                <strong>Origin response comes back with a receipt</strong>
+                <p>
+                  The proxy forwards the request, adds `Payment-Receipt`, and
+                  sets a JWT cookie.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="routes">
+          <h2>Built-in endpoints</h2>
+          <div class="endpoint-grid">
+            <article class="endpoint">
+              <div class="mini-label">GET /__mpp/health</div>
+              <p>Public health probe for deployment and smoke tests.</p>
+              <span class="status public">public</span>
+            </article>
+            <article class="endpoint">
+              <div class="mini-label">GET /__mpp/config</div>
+              <p>
+                Sanitized runtime config including token, wallet suffix, and
+                protected patterns.
+              </p>
+              <span class="status public">public</span>
+            </article>
+            <article class="endpoint">
+              <div class="mini-label">GET /__mpp/protected</div>
+              <p>
+                Built-in paid route for testing the MPP challenge, receipt, and
+                cookie flow.
+              </p>
+              <span class="status protected">payment required</span>
+            </article>
+          </div>
+        </section>
+
+        <footer>
+          <p>
+            Built with
+            <a href="https://workers.cloudflare.com">Cloudflare Workers</a>,
+            <a href="https://mpp.dev/sdk/typescript">mppx</a>, and the
+            <a href="https://mpp.dev/overview">Machine Payments Protocol</a>.
+          </p>
+        </footer>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="MPP icon">
+  <rect width="128" height="128" rx="28" fill="#101418"/>
+  <path d="M24 92V36h18l12 26 12-26h18v56H70V63L58 86H50L38 63v29H24Zm66 0V36h14c16 0 24 7 24 20 0 14-9 21-25 21h-13v15H90Zm14-28c7 0 10-2 10-8 0-5-3-7-10-7h-4v15h4Z" fill="#f5f7fa"/>
+</svg>

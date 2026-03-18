@@ -1,0 +1,161 @@
+/**
+ * MPP Payment-Gated Proxy - Wrangler Configuration
+ *
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mpp-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-10-08",
+  "observability": {
+    "enabled": true,
+  },
+  // Optional demo landing page. Leave disabled for real proxy deployments.
+  // "assets": {
+  //   "directory": "public",
+  // },
+  // =========================================================================
+  // ROUTES - Where the MPP proxy intercepts requests
+  // =========================================================================
+  // Uncomment and configure routes to deploy the proxy on your domain.
+  // The proxy will intercept all requests matching these patterns.
+  //
+  // "routes": [
+  //   {
+  //     "pattern": "example.com/premium/*",
+  //     "zone_name": "example.com",
+  //   },
+  // ],
+  // =========================================================================
+  // SERVICE BINDING - If your origin is another Cloudflare Worker
+  // =========================================================================
+  // Use this instead of ORIGIN_URL when your backend is another Worker
+  // in your account. Service Bindings are faster (no network hop) and
+  // don't require the origin Worker to have a public route.
+  //
+  // "services": [
+  // 	{
+  // 		"binding": "ORIGIN_SERVICE",
+  // 		"service": "my-origin-worker",
+  // 	},
+  // ],
+  "vars": {
+    // =====================================================================
+    // PAY_TO - Your wallet address to receive payments (REQUIRED)
+    // =====================================================================
+    // This is where payments will be sent when users pay for access.
+    // Any Ethereum-compatible wallet works (MetaMask, Coinbase Wallet, etc.).
+    //
+    // The default "dead address" below is useful for testing - payments
+    // sent there are unrecoverable but allow testing the flow.
+    //
+    "PAY_TO": "0x000000000000000000000000000000000000dEaD",
+    // =====================================================================
+    // TEMPO_TESTNET - Use Tempo testnet defaults (REQUIRED)
+    // =====================================================================
+    // `true`: uses Tempo testnet defaults.
+    // `false`: use production Tempo settings.
+    //
+    "TEMPO_TESTNET": true,
+    // =====================================================================
+    // PAYMENT_CURRENCY - Token address clients should pay in (REQUIRED)
+    // =====================================================================
+    // Default PathUSD token for Tempo testnet demos.
+    // Replace this with your production token address before mainnet deploys.
+    //
+    "PAYMENT_CURRENCY": "0x20c0000000000000000000000000000000000000",
+    // =====================================================================
+    // PROTECTED_PATTERNS - Routes requiring payment (REQUIRED)
+    // =====================================================================
+    // Define which routes require payment and how much they cost.
+    // Each entry has:
+    //   - pattern: Route to protect (supports /* wildcards)
+    //   - amount: Cost in payment units (e.g., "0.01")
+    //   - description: Shown to users explaining what they're paying for
+    //
+    // After payment, users get a JWT cookie valid for 1 hour.
+    // MPP responses use `WWW-Authenticate: Payment`, `Authorization: Payment`,
+    // and `Payment-Receipt` headers under the hood.
+    //
+    // ─────────────────────────────────────────────────────────────────────
+    // BOT MANAGEMENT FILTERING (Optional)
+    // Requires Bot Management for Enterprise to enable bot filtering.
+    // ─────────────────────────────────────────────────────────────────────
+    // With Bot Management enabled, you can add:
+    //   - bot_score_threshold: Score at or below which payment is required
+    //   - except_detection_ids: Detection IDs of bots that access FREE
+    //
+    // This enables "default closed" - humans pass free, bots must pay.
+    //
+    "PROTECTED_PATTERNS": [
+      // ─────────────────────────────────────────────────────────────────
+      // Example: Basic - All traffic must pay
+      // ─────────────────────────────────────────────────────────────────
+      {
+        "pattern": "/premium/*",
+        "amount": "0.01",
+        "description": "Access to premium content for 1 hour",
+      },
+
+      // ─────────────────────────────────────────────────────────────────
+      // Example: Bot Management Filtering
+      // Requires Bot Management for Enterprise to enable bot filtering.
+      // ─────────────────────────────────────────────────────────────────
+      // {
+      // 	"pattern": "/content/*",
+      // 	"amount": "0.25",
+      // 	"description": "Content access for 1 hour",
+      // 	"bot_score_threshold": 30,
+      // 	"except_detection_ids": [
+      // 		120623194,  // Googlebot
+      // 		117479730,  // BingBot
+      // 		132995013,  // ChatGPT-User
+      // 		33564303    // Claude-User
+      // 	]
+      // }
+    ],
+    // =====================================================================
+    // ORIGIN_URL - External origin URL (OPTIONAL)
+    // =====================================================================
+    // Controls how requests are proxied to your backend after authentication.
+    //
+    // NOT SET (default): DNS-based proxy mode. Requests are forwarded to the
+    // origin server defined in your Cloudflare DNS records. Use this when your
+    // backend is a traditional server (VM, container, etc.).
+    //
+    // SET TO A URL: External Origin mode. Requests are rewritten to this URL.
+    // Use this to proxy to another Cloudflare Worker (on a Custom Domain) or
+    // any external service.
+    //
+    // Note: If ORIGIN_SERVICE binding is configured above, it takes priority
+    // over both ORIGIN_URL and DNS-based routing.
+    //
+    // "ORIGIN_URL": "https://my-backend.example.com",
+    // =====================================================================
+    // MPP_SECRET_KEY is configured as a Wrangler secret, not a var.
+    // Generate one with:
+    //   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    // then run:
+    //   npx wrangler secret put MPP_SECRET_KEY
+    //
+    // This secret binds `WWW-Authenticate: Payment` challenges to the Worker so
+    // credentials can be verified statelessly.
+    // =====================================================================
+    // JWT_SECRET is also configured as a Wrangler secret and is used for the
+    // 1-hour auth cookie issued after a successful MPP payment.
+    // =====================================================================
+    // TEMPO_RPC_URL is an optional Wrangler secret for authenticated Tempo RPC
+    // access during server-side verification and transaction broadcast.
+    // Example value:
+    //   https://user:pass@rpc.mainnet.tempo.xyz/
+    // Set it with:
+    //   npx wrangler secret put TEMPO_RPC_URL
+    // =====================================================================
+    // PAYMENT METHOD
+    // =====================================================================
+    // This proxy is wired to the Tempo payment method via the `mppx` SDK.
+  },
+  "upload_source_maps": true,
+}
