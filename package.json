@@ -39,7 +39,13 @@
       },
       "MPP_SECRET_KEY": {
         "description": "Secret key for signing MPP payment challenges. Generate with `openssl rand -hex 32`"
-      }
+      },
+      "PAY_TO": {
+        "description": "Tempo recipient wallet for all collected MPP fees. Generate with `cast wallet new` or any other tool that supports EVM wallets"
+      },
+      "PAYMENT_CURRENCY": {
+        "description": "Accepted payment currency for paywalled requests. Default is USDC on Tempo Mainnet"
+      },
     }
   },
   "dependencies": {
