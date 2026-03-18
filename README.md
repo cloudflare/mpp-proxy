@@ -14,7 +14,7 @@ This proxy sits in front of any origin and:
 4. Returns MPP-standard `WWW-Authenticate: Payment` and `Payment-Receipt` headers.
 5. Issues a 1-hour JWT cookie after a successful payment to avoid repaying on every request.
 
-The repo ships with production defaults: Tempo production, USDC at `0x20c000000000000000000000b9537d11c60e8b50`, and the dead address `0x000000000000000000000000000000000000dEaD` as `PAY_TO` until you replace it.
+The repo ships with production defaults: Tempo production, USDC at `0x20c000000000000000000000b9537d11c60e8b50`, and the dead address `0x000000000000000000000000000000000000dEaD` as `PAY_TO`. Update with your wallet address if you want payments to go to that wallet.
 
 ## Try It Out
 
@@ -34,9 +34,10 @@ curl -i https://YOUR-WORKER.workers.dev/__mpp/protected
 
 You should get `402 Payment Required` with a `WWW-Authenticate: Payment` header. That confirms the paywall is active.
 
-### 3. Log in to Tempo
+### 3. Install the Tempo CLI and log in
 
 ```bash
+curl -fsSL tempo.xyz/install | bash
 tempo wallet login
 ```
 
@@ -46,12 +47,6 @@ Tell your agent to run:
 
 ```bash
 tempo request -X GET https://YOUR-WORKER.workers.dev/__mpp/protected
-```
-
-Or use `mppx` directly:
-
-```bash
-npx mppx https://YOUR-WORKER.workers.dev/__mpp/protected
 ```
 
 The client handles the `402` automatically — it pays and returns the protected content with a `Payment-Receipt` header.

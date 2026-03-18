@@ -48,8 +48,8 @@
     // This is where payments will be sent when users pay for access.
     // Any Ethereum-compatible wallet works (MetaMask, Coinbase Wallet, etc.).
     //
-    // The default "dead address" below is useful for testing - payments
-    // sent there are unrecoverable but allow testing the flow.
+    // The default "dead address" below works for testing out of the box.
+    // Update with your wallet address if you want payments to go to that wallet.
     //
     "PAY_TO": "0x000000000000000000000000000000000000dEaD",
     // =====================================================================

@@ -1,4 +1,4 @@
-JWT_SECRET=replace-with-64-char-hex
-MPP_SECRET_KEY=replace-with-long-random-secret
+JWT_SECRET=
+MPP_SECRET_KEY=
 # Optional: set if your Tempo RPC requires authentication.
 # TEMPO_RPC_URL=https://user:pass@rpc.mainnet.tempo.xyz/
