@@ -34,9 +34,11 @@ curl -i https://YOUR-WORKER.workers.dev/__mpp/protected
 
 You should get `402 Payment Required` with a `WWW-Authenticate: Payment` header. That confirms the paywall is active.
 
-### 3. Get a Tempo wallet
+### 3. Log in to Tempo
 
-Go to [wallet.tempo.xyz](https://wallet.tempo.xyz/) to create a wallet and get funds.
+```bash
+tempo wallet login
+```
 
 ### 4. Make a paid request
 
