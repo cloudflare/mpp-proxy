@@ -45,7 +45,7 @@
       },
       "PAYMENT_CURRENCY": {
         "description": "Accepted payment currency for paywalled requests. Default is USDC on Tempo Mainnet"
-      },
+      }
     }
   },
   "dependencies": {
