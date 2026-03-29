@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "hono": "4.11.1",
-    "mppx": "^0.4.4"
+    "mppx": "^0.4.11"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
