@@ -49,8 +49,8 @@
     }
   },
   "dependencies": {
-    "hono": "4.11.1",
-    "mppx": "^0.4.11"
+    "hono": "4.12.14",
+    "mppx": "^0.5.14"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
