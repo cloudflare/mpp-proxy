@@ -60,8 +60,8 @@
     "eslint-config-prettier": "10.1.8",
     "prettier": "3.7.4",
     "tsx": "4.21.0",
-    "viem": "^2.47.4",
-    "wrangler": "4.75.0"
+    "viem": "^2.51.3",
+    "wrangler": "4.95.0"
   },
   "scripts": {
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
