@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "hono": "4.11.1",
+    "jose": "^6.2.3",
     "mppx": "^0.4.11"
   },
   "devDependencies": {
