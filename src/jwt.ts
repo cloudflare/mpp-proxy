@@ -3,10 +3,30 @@
  * Implements stateless authentication with HMAC-SHA256 signatures
  */
 
+export interface JWTAccessScope {
+  /** Schema version for future-compatible validation */
+  version: 1;
+  /** Payment method used for the charge */
+  paymentMethod: "tempo";
+  /** Hostname/realm the payment challenge was issued for */
+  realm: string;
+  /** Protected route pattern that was paid for */
+  pattern: string;
+  /** Amount paid for the protected route */
+  amount: string;
+  /** Token address used for payment */
+  paymentCurrency: string;
+  /** Recipient wallet for the payment */
+  payTo: string;
+  /** Tempo network selector */
+  tempoTestnet: boolean;
+}
+
 export interface JWTPayload {
   paid: boolean; // indicates payment was verified
   iat: number; // issued at (seconds since epoch)
   exp: number; // expires at (seconds since epoch)
+  scope: JWTAccessScope; // route/payment scope this token authorizes
 }
 
 /**
@@ -68,14 +88,29 @@ async function importSecretKey(secret: string): Promise<CryptoKey> {
   );
 }
 
+function scopesMatch(a: JWTAccessScope, b: JWTAccessScope): boolean {
+  return (
+    a.version === b.version &&
+    a.paymentMethod === b.paymentMethod &&
+    a.realm === b.realm &&
+    a.pattern === b.pattern &&
+    a.amount === b.amount &&
+    a.paymentCurrency === b.paymentCurrency &&
+    a.payTo === b.payTo &&
+    a.tempoTestnet === b.tempoTestnet
+  );
+}
+
 /**
  * Generate a JWT token
  * @param secret - The secret key for signing
+ * @param scope - Route/payment scope this token authorizes
  * @param expiresInSeconds - Token validity duration (default: 3600 = 1 hour)
  * @returns JWT token string
  */
 export async function generateJWT(
   secret: string,
+  scope: JWTAccessScope,
   expiresInSeconds: number = 3600,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
@@ -91,6 +126,7 @@ export async function generateJWT(
     paid: true,
     iat: now,
     exp: now + expiresInSeconds,
+    scope,
   };
 
   // Encode header and payload
@@ -119,11 +155,13 @@ export async function generateJWT(
  * Verify and decode a JWT token
  * @param token - The JWT token to verify
  * @param secret - The secret key for verification
+ * @param expectedScope - Optional route/payment scope the token must match
  * @returns Decoded payload if valid, null otherwise
  */
 export async function verifyJWT(
   token: string,
   secret: string,
+  expectedScope?: JWTAccessScope,
 ): Promise<JWTPayload | null> {
   try {
     // Split token into parts
@@ -155,10 +193,14 @@ export async function verifyJWT(
     const payloadStr = arrayBufferToString(payloadBuffer);
     const payload = JSON.parse(payloadStr) as JWTPayload;
 
-    // Check expiration
+    // Check required claims and expiration
     const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) {
-      return null; // Token expired
+    if (payload.paid !== true || payload.exp < now || !payload.scope) {
+      return null;
+    }
+
+    if (expectedScope && !scopesMatch(payload.scope, expectedScope)) {
+      return null;
     }
 
     return payload;

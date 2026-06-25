@@ -1,6 +1,11 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { setCookie } from "hono/cookie";
-import { createProtectedRoute, type ProtectedRouteConfig } from "./auth";
+import {
+  createAccessScope,
+  createProtectedRoute,
+  getAuthCookiePath,
+  type ProtectedRouteConfig,
+} from "./auth";
 import { generateJWT } from "./jwt";
 import { hasBotManagementException } from "./bot-management";
 import type { AppContext, Env } from "./env";
@@ -102,9 +107,44 @@ async function proxyToOrigin(request: Request, env: Env): Promise<Response> {
  */
 function pathMatchesPattern(path: string, pattern: string): boolean {
   if (pattern.endsWith("/*")) {
-    return path.startsWith(pattern.slice(0, -2));
+    const prefix = pattern.slice(0, -2);
+    return path === prefix || path.startsWith(`${prefix}/`);
   }
   return path === pattern;
+}
+
+function patternSpecificity(pattern: string): number {
+  if (pattern.endsWith("/*")) {
+    return pattern.slice(0, -2).length * 2;
+  }
+
+  return pattern.length * 2 + 1;
+}
+
+function setScopedAuthCookie(
+  c: Context<AppContext>,
+  token: string,
+  path: string,
+) {
+  setCookie(c, "auth_token", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+    maxAge: 3600,
+    path,
+  });
+
+  // Expire the old deployment-wide cookie so legacy unscoped sessions do not
+  // shadow newer route-scoped cookies with the same name.
+  if (path !== "/") {
+    setCookie(c, "auth_token", "", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 0,
+      path: "/",
+    });
+  }
 }
 
 /**
@@ -115,10 +155,15 @@ function findProtectedRouteConfig(
   path: string,
   patterns: ProtectedRouteConfig[],
 ): ProtectedRouteConfig | null {
-  // Check built-in protected routes first, then configured patterns
+  // Prefer the most specific matching route so an overlapping broad, cheap
+  // wildcard cannot shadow a more expensive exact/narrow route.
   const allRoutes = [...BUILTIN_PROTECTED_PATHS, ...patterns];
   return (
-    allRoutes.find((config) => pathMatchesPattern(path, config.pattern)) ?? null
+    allRoutes
+      .filter((config) => pathMatchesPattern(path, config.pattern))
+      .sort(
+        (a, b) => patternSpecificity(b.pattern) - patternSpecificity(a.pattern),
+      )[0] ?? null
   );
 }
 
@@ -161,6 +206,8 @@ app.use("*", async (c, next) => {
 
     // Use the protected route middleware
     const protectedMiddleware = createProtectedRoute(protectedConfig);
+    const accessScope = createAccessScope(protectedConfig, c.env, c.req.url);
+    const authCookiePath = getAuthCookiePath(protectedConfig);
     let jwtToken = "";
 
     const result = await protectedMiddleware(c, async () => {
@@ -171,7 +218,7 @@ app.use("*", async (c, next) => {
         // This is a new payment - generate JWT cookie
         // Note: This runs after payment verification but BEFORE settlement.
         // We'll check if settlement succeeded before actually using the token.
-        jwtToken = await generateJWT(c.env.JWT_SECRET, 3600);
+        jwtToken = await generateJWT(c.env.JWT_SECRET, accessScope, 3600);
       }
 
       if (path === "/__mpp/protected") {
@@ -197,13 +244,7 @@ app.use("*", async (c, next) => {
       // Built-in protected endpoint response is created inside the payment
       // callback so the receipt header gets attached to the JSON body.
       if (jwtToken) {
-        setCookie(c, "auth_token", jwtToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "Strict",
-          maxAge: 3600,
-          path: "/",
-        });
+        setScopedAuthCookie(c, jwtToken, authCookiePath);
       }
 
       return c.res;
@@ -217,13 +258,7 @@ app.use("*", async (c, next) => {
     if (jwtToken || paymentReceipt) {
       // Use Hono's setCookie to generate the proper Set-Cookie header
       if (jwtToken) {
-        setCookie(c, "auth_token", jwtToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "Strict",
-          maxAge: 3600,
-          path: "/",
-        });
+        setScopedAuthCookie(c, jwtToken, authCookiePath);
       }
 
       // Clone the origin response and add our cookie header
