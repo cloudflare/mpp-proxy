@@ -82,7 +82,7 @@ export function createProtectedRoute(config: ProtectedRouteConfig) {
   return async (c: Context<AppContext>, next: Next) => {
     const mppx = Mppx.create({
       methods: [
-        tempo({
+        tempo.charge({
           currency: c.env.PAYMENT_CURRENCY,
           recipient: c.env.PAY_TO,
           testnet: c.env.TEMPO_TESTNET,
