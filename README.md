@@ -138,9 +138,9 @@ The built-in paid test route at `/__mpp/protected` always exists, even if you ch
 3. Client retries with `Authorization: Payment`.
 4. Proxy verifies the credential with `mppx`.
 5. Proxy forwards to the origin and adds `Payment-Receipt`.
-6. Proxy also issues an `auth_token` cookie valid for 1 hour.
+6. Proxy also issues an `auth_token` cookie valid for 1 hour and scoped to the paid route/payment configuration.
 
-That means MPP-native clients get standards-compliant receipts, while browsers and agents can reuse the cookie for repeated access during the valid period.
+That means MPP-native clients get standards-compliant receipts, while browsers and agents can reuse the cookie for repeated access to the same paid scope during the valid period.
 
 ## Proxy Modes
 

@@ -3,27 +3,55 @@
  */
 
 import { Context, Next, MiddlewareHandler } from "hono";
-import { getCookie } from "hono/cookie";
 import { payment } from "mppx/hono";
 import { Mppx, tempo } from "mppx/server";
 import { createClient, http } from "viem";
 import { tempo as tempoMainnet, tempoModerato } from "viem/chains";
-import { verifyJWT } from "./jwt";
+import { verifyJWT, type JWTAccessScope } from "./jwt";
 import type { AppContext, Env } from "./env";
+
+const AUTH_COOKIE_NAME = "auth_token";
+
+function getAuthCookieValues(cookieHeader: string | null): string[] {
+  if (!cookieHeader) {
+    return [];
+  }
+
+  const values: string[] = [];
+
+  for (const cookie of cookieHeader.split(";")) {
+    const [name, ...valueParts] = cookie.trim().split("=");
+    if (name !== AUTH_COOKIE_NAME || valueParts.length === 0) {
+      continue;
+    }
+
+    const value = valueParts.join("=");
+    try {
+      values.push(decodeURIComponent(value));
+    } catch {
+      values.push(value);
+    }
+  }
+
+  return values;
+}
 
 /**
  * Creates a combined middleware that checks for valid cookie authentication
  * and conditionally applies payment middleware only if cookie auth fails
  *
- * @param paymentMiddleware - The payment middleware to apply when no valid cookie exists
+ * @param paymentMiddleware - The payment middleware to apply when no valid scoped cookie exists
+ * @param expectedScope - Route/payment scope the cookie must authorize
  * @returns Combined authentication and payment middleware
  */
-export function requirePaymentOrCookie(paymentMw: MiddlewareHandler) {
+export function requirePaymentOrCookie(
+  paymentMw: MiddlewareHandler,
+  expectedScope: JWTAccessScope,
+) {
   return async (c: Context<AppContext>, next: Next) => {
-    // Check for valid cookie
-    const token = getCookie(c, "auth_token");
+    const tokens = getAuthCookieValues(c.req.raw.headers.get("Cookie"));
 
-    if (token) {
+    if (tokens.length > 0) {
       const jwtSecret = c.env.JWT_SECRET;
 
       // Ensure JWT_SECRET is configured
@@ -37,17 +65,20 @@ export function requirePaymentOrCookie(paymentMw: MiddlewareHandler) {
         );
       }
 
-      const payload = await verifyJWT(token, jwtSecret);
+      for (const token of tokens) {
+        const payload = await verifyJWT(token, jwtSecret, expectedScope);
 
-      // If token is valid, skip payment and go directly to handler
-      if (payload) {
-        c.set("auth", payload);
-        await next(); // Call the handler
-        return;
+        // If token is valid for this exact route/payment scope, skip payment
+        // and go directly to the handler.
+        if (payload) {
+          c.set("auth", payload);
+          await next(); // Call the handler
+          return;
+        }
       }
     }
 
-    // No valid cookie - apply payment middleware
+    // No valid scoped cookie - apply payment middleware
     return await paymentMw(c, next);
   };
 }
@@ -70,6 +101,31 @@ export interface ProtectedRouteConfig {
   except_detection_ids?: number[];
 }
 
+export function createAccessScope(
+  config: ProtectedRouteConfig,
+  env: Env,
+  requestUrl: string,
+): JWTAccessScope {
+  return {
+    version: 1,
+    paymentMethod: "tempo",
+    realm: new URL(requestUrl).host,
+    pattern: config.pattern,
+    amount: config.amount,
+    paymentCurrency: env.PAYMENT_CURRENCY.toLowerCase(),
+    payTo: env.PAY_TO.toLowerCase(),
+    tempoTestnet: env.TEMPO_TESTNET,
+  };
+}
+
+export function getAuthCookiePath(config: ProtectedRouteConfig): string {
+  if (!config.pattern.endsWith("/*")) {
+    return config.pattern;
+  }
+
+  return config.pattern.slice(0, -2) || "/";
+}
+
 /**
  * Creates middleware for a protected route that requires payment OR valid cookie
  * This dynamically creates payment middleware at request time to access environment variables
@@ -80,6 +136,8 @@ export interface ProtectedRouteConfig {
  */
 export function createProtectedRoute(config: ProtectedRouteConfig) {
   return async (c: Context<AppContext>, next: Next) => {
+    const accessScope = createAccessScope(config, c.env, c.req.url);
+
     const mppx = Mppx.create({
       methods: [
         tempo.charge({
@@ -103,7 +161,7 @@ export function createProtectedRoute(config: ProtectedRouteConfig) {
     });
 
     // Apply the combined auth/payment middleware
-    return await requirePaymentOrCookie(paymentMw)(c, next);
+    return await requirePaymentOrCookie(paymentMw, accessScope)(c, next);
   };
 }
 
