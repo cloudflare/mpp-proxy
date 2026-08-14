@@ -97,14 +97,79 @@ async function proxyToOrigin(request: Request, env: Env): Promise<Response> {
 }
 
 /**
- * Check if a path matches a route pattern
- * Supports exact matches and prefix matches with /* wildcard
+ * Canonicalize a URL path using the same representation for access-control
+ * checks and origin requests. Nested or malformed encodings are rejected
+ * because different origins may interpret them with a different number of
+ * decoding passes.
+ */
+function canonicalizePath(path: string): string | null {
+  let decodedPath: string;
+
+  try {
+    decodedPath = decodeURIComponent(path);
+  } catch {
+    return null;
+  }
+
+  if (/%[0-9a-f]{2}/i.test(decodedPath)) {
+    return null;
+  }
+
+  // Control characters have inconsistent handling across origin servers.
+  if (/\p{Cc}/u.test(decodedPath)) {
+    return null;
+  }
+
+  // Treat backslashes as separators, collapse duplicate separators, and let
+  // the URL implementation resolve dot segments and encode the result.
+  const normalizedPath = decodedPath
+    .normalize("NFC")
+    .replace(/%/g, "%25")
+    .replace(/[\\/]+/g, "/");
+  const normalizedUrl = new URL("https://mpp.invalid/");
+  normalizedUrl.pathname = normalizedPath;
+  return normalizedUrl.pathname;
+}
+
+function canonicalizeRequest(
+  request: Request,
+): { path: string; request: Request } | null {
+  const url = new URL(request.url);
+  const path = canonicalizePath(url.pathname);
+
+  if (path === null) {
+    return null;
+  }
+
+  url.pathname = path;
+  const canonicalUrl = url.toString();
+
+  if (canonicalUrl === request.url) {
+    return { path, request };
+  }
+
+  return { path, request: new Request(canonicalUrl, request) };
+}
+
+/**
+ * Check if a canonical path matches a route pattern.
+ * Supports exact matches and prefix matches with /* wildcard. Matching is
+ * intentionally case-insensitive so a case-insensitive origin cannot expose a
+ * differently-cased spelling of a protected resource.
  */
 function pathMatchesPattern(path: string, pattern: string): boolean {
-  if (pattern.endsWith("/*")) {
-    return path.startsWith(pattern.slice(0, -2));
+  const hasWildcard = pattern.endsWith("/*");
+  const patternPath = hasWildcard ? pattern.slice(0, -2) : pattern;
+  const canonicalPattern = canonicalizePath(patternPath);
+
+  if (canonicalPattern === null) {
+    return false;
   }
-  return path === pattern;
+
+  const pathKey = decodeURIComponent(path).toLowerCase();
+  const patternKey = decodeURIComponent(canonicalPattern).toLowerCase();
+
+  return hasWildcard ? pathKey.startsWith(patternKey) : pathKey === patternKey;
 }
 
 /**
@@ -128,7 +193,12 @@ function findProtectedRouteConfig(
  * take precedence by being registered after this middleware
  */
 app.use("*", async (c, next) => {
-  const path = c.req.path;
+  const canonicalRequest = canonicalizeRequest(c.req.raw);
+  if (canonicalRequest === null) {
+    return c.json({ error: "Invalid request path" }, 400);
+  }
+
+  const { path, request: originRequest } = canonicalRequest;
   const protectedPatterns = c.env.PROTECTED_PATTERNS || [];
 
   // Special handling for built-in endpoints
@@ -145,7 +215,7 @@ app.use("*", async (c, next) => {
       if (path === "/__mpp/protected") {
         return next();
       }
-      return proxyToOrigin(c.req.raw, c.env);
+      return proxyToOrigin(originRequest, c.env);
     }
 
     // Ensure required secrets are configured before processing protected routes
@@ -209,8 +279,9 @@ app.use("*", async (c, next) => {
       return c.res;
     }
 
-    // Proxy the authenticated request to origin
-    const originResponse = await proxyToOrigin(c.req.raw, c.env);
+    // Proxy the authenticated request using the same canonical path that was
+    // evaluated by the access-control check.
+    const originResponse = await proxyToOrigin(originRequest, c.env);
     const paymentReceipt = c.res.headers.get("Payment-Receipt");
 
     // If we generated a JWT token or receipt header, clone the origin response
@@ -251,8 +322,9 @@ app.use("*", async (c, next) => {
     return originResponse;
   }
 
-  // Proxy unprotected routes directly to origin
-  return proxyToOrigin(c.req.raw, c.env);
+  // Proxy unprotected routes using the same canonical path that was evaluated
+  // by the access-control check.
+  return proxyToOrigin(originRequest, c.env);
 });
 
 /**
