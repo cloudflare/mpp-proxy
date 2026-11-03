@@ -14,11 +14,6 @@ A Cloudflare Worker that adds payment gating to any origin using the Machine Pay
 **With Bot Management Filtering:** Requires Bot Management for Enterprise to enable bot filtering. When enabled, humans can pass through free while likely automated traffic must pay. This is optional and enhances the base functionality.
 
 This template is currently wired to the Tempo payment method via `mppx`.
-Keep the checked-in `PAYMENT_STORE` Durable Object binding, SQLite migration, and
-`nodejs_compat` flag when modifying configuration. The payment store must provide
-atomic claims shared across isolates; ordinary Workers KV or an in-memory store
-is not sufficient. For existing deployments, rotate `JWT_SECRET` on upgrade to
-expire existing access cookies.
 
 ---
 

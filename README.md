@@ -14,16 +14,10 @@ This proxy sits in front of any origin and:
 4. Returns MPP-standard `WWW-Authenticate: Payment` and `Payment-Receipt` headers.
 5. Issues a 1-hour JWT cookie after a successful payment to avoid repaying on every request.
 
-Payment verification uses challenge-bound Tempo memos and an atomic replay store
-backed by SQLite Durable Objects. Keep the `PAYMENT_STORE` binding, its migration,
-and `nodejs_compat` enabled in `wrangler.jsonc`. Deployment provisions the namespace;
-no manually created KV namespace is needed. Ordinary Workers KV does not provide
-the atomic claims required to prevent concurrent replay.
-
-When upgrading an existing deployment, deploy the updated code, dependencies, and
-Durable Object configuration together. Rotate `JWT_SECRET` to expire existing
-access cookies. Keep `MPP_SECRET_KEY` secret and
-rotate it if you also need to invalidate outstanding payment challenges.
+Deploy the updated code and dependencies with the `PAYMENT_STORE` Durable Object
+binding, SQLite migration, and `nodejs_compat` flag in `wrangler.jsonc`. The store
+provides atomic payment claims shared across Worker instances. When upgrading,
+rotate `JWT_SECRET` to expire existing access cookies.
 
 The repo ships with production defaults: Tempo production, USDC at `0x20c000000000000000000000b9537d11c60e8b50`, and the dead address `0x000000000000000000000000000000000000dEaD` as `PAY_TO`. Update with your wallet address if you want payments to go to that wallet.
 
@@ -84,11 +78,6 @@ Then hit `http://localhost:8787/__mpp/health` or `http://localhost:8787/__mpp/pr
 For local testnet development, set `TEMPO_TESTNET` to `true` and `PAYMENT_CURRENCY` to `0x20c0000000000000000000000000000000000000` in `wrangler.jsonc`. See [TUTORIAL.md](TUTORIAL.md) for a full local walkthrough.
 
 If you want the optional landing page at `/`, uncomment the `assets` block in `wrangler.jsonc`.
-
-The development toolchain uses TypeScript 6.0 to stay within the ESLint parser's
-supported range and pins Miniflare to the version shipped with Wrangler. The
-`minimatch` override selects its patched release until the lint tooling updates
-its dependency range.
 
 ## Configuration
 

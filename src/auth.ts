@@ -12,44 +12,6 @@ import { verifyJWT } from "./jwt";
 import type { AppContext, Env } from "./env";
 import { createReplayStore } from "./replay-store";
 
-// Cache configuration, never a request/context or a request's payment state.
-// Keep only the most recent realm for each environment to bound the cache.
-const verifiers = new WeakMap<
-  Env,
-  { realm: string; mppx: ReturnType<typeof createPaymentVerifier> }
->();
-
-function createPaymentVerifier(env: Env, realm: string) {
-  if (!env.PAYMENT_STORE) {
-    throw new Error("Server misconfigured: PAYMENT_STORE binding not set");
-  }
-  return Mppx.create({
-    methods: [
-      tempo.charge({
-        currency: env.PAYMENT_CURRENCY,
-        recipient: env.PAY_TO,
-        testnet: env.TEMPO_TESTNET,
-        store: createReplayStore(env.PAYMENT_STORE),
-        ...(env.TEMPO_RPC_URL
-          ? { getClient: createTempoClientResolver(env) }
-          : {}),
-      }),
-    ],
-    realm,
-    secretKey: env.MPP_SECRET_KEY,
-  });
-}
-
-function getPaymentVerifier(env: Env, realm: string) {
-  const cached = verifiers.get(env);
-  if (cached?.realm === realm) {
-    return cached.mppx;
-  }
-  const mppx = createPaymentVerifier(env, realm);
-  verifiers.set(env, { realm, mppx });
-  return mppx;
-}
-
 /**
  * Creates a combined middleware that checks for valid cookie authentication
  * and conditionally applies payment middleware only if cookie auth fails
@@ -111,7 +73,7 @@ export interface ProtectedRouteConfig {
 
 /**
  * Creates middleware for a protected route that requires payment OR valid cookie
- * Reuses a verifier configured with a durable atomic replay store.
+ * This dynamically creates payment middleware at request time to access environment variables
  * The route path is automatically determined from the request context
  *
  * @param config - Payment configuration
@@ -119,7 +81,23 @@ export interface ProtectedRouteConfig {
  */
 export function createProtectedRoute(config: ProtectedRouteConfig) {
   return async (c: Context<AppContext>, next: Next) => {
-    const mppx = getPaymentVerifier(c.env, new URL(c.req.url).host);
+    const mppx = Mppx.create({
+      methods: [
+        tempo.charge({
+          currency: c.env.PAYMENT_CURRENCY,
+          recipient: c.env.PAY_TO,
+          testnet: c.env.TEMPO_TESTNET,
+          store: createReplayStore(c.env.PAYMENT_STORE),
+          ...(c.env.TEMPO_RPC_URL
+            ? {
+                getClient: createTempoClientResolver(c.env),
+              }
+            : {}),
+        }),
+      ],
+      realm: new URL(c.req.url).host,
+      secretKey: c.env.MPP_SECRET_KEY,
+    });
 
     const paymentMw = payment(mppx.charge, {
       amount: config.amount,
