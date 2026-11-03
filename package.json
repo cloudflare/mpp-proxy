@@ -12,7 +12,7 @@
     "url": "https://github.com/cloudflare/mpp-proxy/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.18"
   },
   "keywords": [
     "cloudflare-workers",
@@ -49,22 +49,27 @@
     }
   },
   "dependencies": {
-    "hono": "4.11.1",
-    "mppx": "^0.4.11"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "hono": "^4.13.16",
+    "mppx": "^0.17.0",
+    "viem": "^2.57.16"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "@typescript-eslint/eslint-plugin": "8.50.0",
-    "@typescript-eslint/parser": "8.50.0",
-    "eslint": "9.39.2",
-    "eslint-config-prettier": "10.1.8",
-    "prettier": "3.7.4",
-    "tsx": "4.21.0",
-    "viem": "^2.47.4",
-    "wrangler": "4.75.0"
+    "@cloudflare/workers-types": "^5.20261103.1",
+    "@types/node": "^26.6.6",
+    "@typescript-eslint/eslint-plugin": "^8.72.1",
+    "@typescript-eslint/parser": "^8.72.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "miniflare": "5.20261103.0-beta",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.0",
+    "wrangler": "^4.157.0"
   },
   "scripts": {
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings && prettier --write worker-configuration.d.ts",
     "deploy": "wrangler deploy --minify",
     "dev": "wrangler dev",
     "format": "prettier --write .",
@@ -75,5 +80,8 @@
     "test:client": "tsx test-client.ts",
     "typecheck": "tsc --noEmit"
   },
-  "type": "module"
+  "type": "module",
+  "overrides": {
+    "minimatch": "^11.0.4"
+  }
 }

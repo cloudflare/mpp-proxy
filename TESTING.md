@@ -2,6 +2,24 @@
 
 This project supports both standards-level MPP testing and the JWT cookie shortcut used by the proxy.
 
+## Automated regression tests
+
+```bash
+npm ci
+npm test
+npm run lint
+```
+
+The regression suite runs separate Worker isolates against a shared SQLite
+Durable Object namespace in Miniflare. A local mock Tempo RPC supplies synthetic
+receipts; no wallet, funds, live chain, or Cloudflare account is required.
+
+Coverage includes payment validation, sequential and concurrent replay handling,
+persistence after a runtime restart, atomic store updates, missing-binding
+configuration, and valid payments followed by cookie reuse and origin access.
+The fixtures use reserved example domains, synthetic transaction hashes, and test
+credentials. They contain no production credentials or captured payment data.
+
 ## Prerequisites
 
 1. A Tempo test wallet private key
