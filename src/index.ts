@@ -5,6 +5,8 @@ import { generateJWT } from "./jwt";
 import { hasBotManagementException } from "./bot-management";
 import type { AppContext, Env } from "./env";
 
+export { PaymentReplayStore } from "./payment-replay-store";
+
 const app = new Hono<AppContext>();
 
 /**
@@ -149,11 +151,11 @@ app.use("*", async (c, next) => {
     }
 
     // Ensure required secrets are configured before processing protected routes
-    if (!c.env.JWT_SECRET || !c.env.MPP_SECRET_KEY) {
+    if (!c.env.JWT_SECRET || !c.env.MPP_SECRET_KEY || !c.env.PAYMENT_STORE) {
       return c.json(
         {
           error:
-            "Server misconfigured: JWT_SECRET or MPP_SECRET_KEY not set. See README for setup instructions.",
+            "Server misconfigured: JWT_SECRET, MPP_SECRET_KEY, or PAYMENT_STORE not set. See README for setup instructions.",
         },
         500,
       );

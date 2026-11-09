@@ -14,6 +14,11 @@ This proxy sits in front of any origin and:
 4. Returns MPP-standard `WWW-Authenticate: Payment` and `Payment-Receipt` headers.
 5. Issues a 1-hour JWT cookie after a successful payment to avoid repaying on every request.
 
+Deploy the updated code and dependencies with the `PAYMENT_STORE` Durable Object
+binding, SQLite migration, and `nodejs_compat` flag in `wrangler.jsonc`. The store
+provides atomic payment claims shared across Worker instances. When upgrading,
+rotate `JWT_SECRET` to expire existing access cookies.
+
 The repo ships with production defaults: Tempo production, USDC at `0x20c000000000000000000000b9537d11c60e8b50`, and the dead address `0x000000000000000000000000000000000000dEaD` as `PAY_TO`. Update with your wallet address if you want payments to go to that wallet.
 
 ## Try It Out
@@ -58,6 +63,8 @@ The client handles the `402` automatically — it pays and returns the protected
 - `/__mpp/protected` - built-in paid route for testing
 
 ## Quick Start (Local Development)
+
+Use Node.js 22.18 or later.
 
 ```bash
 npm install

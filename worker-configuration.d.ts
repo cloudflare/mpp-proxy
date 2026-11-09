@@ -6,6 +6,9 @@ declare namespace Cloudflare {
     mainModule: typeof import("./src/index");
   }
   interface Env {
+    PAYMENT_STORE: DurableObjectNamespace<
+      import("./src/index").PaymentReplayStore
+    >;
     PAY_TO: "0x000000000000000000000000000000000000dEaD";
     TEMPO_TESTNET: false;
     PAYMENT_CURRENCY: "0x20c000000000000000000000b9537d11c60e8b50";

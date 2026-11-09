@@ -10,6 +10,7 @@ import { createClient, http } from "viem";
 import { tempo as tempoMainnet, tempoModerato } from "viem/chains";
 import { verifyJWT } from "./jwt";
 import type { AppContext, Env } from "./env";
+import { createReplayStore } from "./replay-store";
 
 /**
  * Creates a combined middleware that checks for valid cookie authentication
@@ -86,6 +87,7 @@ export function createProtectedRoute(config: ProtectedRouteConfig) {
           currency: c.env.PAYMENT_CURRENCY,
           recipient: c.env.PAY_TO,
           testnet: c.env.TEMPO_TESTNET,
+          store: createReplayStore(c.env.PAYMENT_STORE),
           ...(c.env.TEMPO_RPC_URL
             ? {
                 getClient: createTempoClientResolver(c.env),

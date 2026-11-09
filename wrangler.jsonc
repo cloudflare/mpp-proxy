@@ -9,6 +9,13 @@
   "name": "mpp-proxy",
   "main": "src/index.ts",
   "compatibility_date": "2025-10-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      { "name": "PAYMENT_STORE", "class_name": "PaymentReplayStore" },
+    ],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PaymentReplayStore"] }],
   "observability": {
     "enabled": true,
   },
